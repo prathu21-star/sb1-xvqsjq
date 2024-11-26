@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  email         String    @unique
+  name          String?
+  passwordHash  String
+  role          UserRole  @default(USER)
+  company       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  providers     Provider[]
+  quotesRequested QuoteRequest[] @relation("buyer")
+  quotesReceived  QuoteRequest[] @relation("seller")
+}
+
+model Provider {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  description   String
+  location      String
+  contact       String
+  email         String
+  website       String?
+  compliances   String[]  
+  services      String[]
+  isActive      Boolean   @default(true)
+  userId        String    @db.ObjectId
+  user          User      @relation(fields: [userId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  products      Product[]
+  quotes        QuoteRequest[] @relation("provider")
+}
+
+model Product {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  category    String
+  description String
+  specs       Json
+  price       Float?
+  providerId  String    @db.ObjectId
+  provider    Provider  @relation(fields: [providerId], references: [id])
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model QuoteRequest {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  buyerId     String    @db.ObjectId
+  buyer       User      @relation("buyer", fields: [buyerId], references: [id])
+  sellerId    String    @db.ObjectId
+  seller      User      @relation("seller", fields: [sellerId], references: [id])
+  providerId  String    @db.ObjectId
+  provider    Provider  @relation("provider", fields: [providerId], references: [id])
+  details     Json
+  status      QuoteStatus @default(PENDING)
+  price       Float?
+  timeline    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum UserRole {
+  USER
+  PROVIDER
+  ADMIN
+}
+
+enum QuoteStatus {
+  PENDING
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+}
